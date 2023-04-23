@@ -143,16 +143,15 @@ struct EnrichedMessage<'a> {
 
 impl Conversation {
     fn get_start_ids(&self) -> Vec<&str> {
-        self.sort_ids(self.mapping.iter().filter_map(|x| x.1.parent.as_ref().map(|x| &x[..])).filter(|x| self.mapping[*x].message.as_ref().map(|y| y.author.role != AuthorRole::System).unwrap_or(false)).collect::<Vec<_>>())
-    }
-
-    fn sort_ids<'a>(&self, mut ids: Vec<&'a str>) -> Vec<&'a str> {
-        ids.sort_by_key(|x| (self.mapping[*x].message.as_ref().unwrap().create_time * 1000.0) as u64);
-        ids
+        let root = self.mapping.iter().find(|x| x.1.parent.is_none()).unwrap().1;
+        assert!(root.children.len() == 1);
+        let root2 = &self.mapping[&root.children[0]];
+        assert!(root2.message.as_ref().unwrap().author.role == AuthorRole::System);
+        root2.children.iter().map(|x| &x[..]).collect::<Vec<_>>()
     }
 
     fn get_children<'a>(&'a self, id: &str) -> Vec<&'a str> {
-        self.sort_ids(self.mapping[id].children.iter().map(|x| &x[..]).collect::<Vec<_>>())
+        self.mapping[id].children.iter().map(|x| &x[..]).collect::<Vec<_>>()
     }
 
     fn recurse<'a>(&'a self, current: &mut Vec<EnrichedMessage<'a>>, result: &mut Vec<Vec<EnrichedMessage<'a>>>, child_ids: Vec<&'a str>) {
